@@ -1,0 +1,11 @@
+
+gsmcard is a small perl script for accessing mobile phone SIM cards.
+
+
+It works for the commandline, but can be easily used in other programs; the
+output lines include status codes similar to the FTP protocol.
+
+
+(C) 2000, 2001, 2009-2010 Ph. Marek
+Many thanks to Ploc for helping - testing, bug reports, documentation.
+

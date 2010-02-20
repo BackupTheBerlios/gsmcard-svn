@@ -1,0 +1,180 @@
++-----------------------------------------------------------------------------+
+| gsmcard - sim card manager                                                  |
+|-----------------------------------------------------------------------------|
+| Copyright (C) 2000-2010 Philipp Marek                                       |
+|-----------------------------------------------------------------------------|
+| http://berlios.de/gsmcard/                                                  |
+| mailto:philipp [at] marek.priv.at                                           |
+|-----------------------------------------------------------------------------|
+| This file is part of gsmcard.                                               |
+|                                                                             |
+| gsmcard is free software: you can redistribute it and/or modify             |
+| it under the terms of the GNU General Public License as published by        |
+| the Free Software Foundation, either version 3 of the License, or           |
+| (at your option) any later version.                                         |
+|                                                                             |
+| gsmcard is distributed in the hope that it will be useful,                  |
+| but WITHOUT ANY WARRANTY; without even the implied warranty of              |
+| MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the               |
+| GNU General Public License for more details.                                |
+|                                                                             |
+| You should have received a copy of the GNU General Public License           |
+| along with gsmcard.  If not, see <http://www.gnu.org/licenses/>.            |
+|-----------------------------------------------------------------------------|
+|                                   README                                    |
++-----------------------------------------------------------------------------+
+
+- gsmcard is a sim card manager, it can save and restore phonebook, change
+  and unblock pin code.
+
+
+|-----------------------------------------------------------------------------|
+|                                REQUIREMENTS                                 |
++-----------------------------------------------------------------------------+
+
+- a sim card reader
+- pcsc
+- libpcsc-perl
+
+
+|-----------------------------------------------------------------------------|
+|                                INSTALLATION                                 |
++-----------------------------------------------------------------------------+
+
+- Copy the gsmcard.pl script wherever you want.
+
+- Change mode on the script to set it executable.
+
+
+|-----------------------------------------------------------------------------|
+|                                   USAGE                                     |
++-----------------------------------------------------------------------------+
+
+- Launch the script in a terminal. A prompt is now waiting for your commands.
+  Here are the available commands and descriptions. All parameters can be
+  entered with the command or will be asked interactively by gsmcard.
+
+- First, you might want to get additionnal inline help with the 'help'
+  command.
+
+  > help (ask for general help)
+  > help opencard (same as above but on a specific command, here 'opencard')
+
+- Then, if you want to interact with a sim card, you need to use the
+  'opencard' command that will open a communication channel with the sim
+  card. Note that you can eventually give the pin code if the sim card needs
+  it.
+
+  > opencard (open the communication channel with the sim card)
+  > opencard 1234 (same as above but specifying a pin code)
+
+- If you want to check the status of the sim card and the communication
+  channel between gsmcard and the sim card, use the 'status' command.
+
+  > status (get status of sim card and communication channel)
+
+- If you want to get some various information about the sim card, you can use
+  the 'info' command with one of the following parameter depending on what
+  informations you want to get : serial, lang, imsi or sp.
+
+  > info serial (get serial number of the sim card)
+  > info lang (get language informations of the sim card)
+  > info imsi (get internal mobile subscriber id of the sim card)
+  > info sp (get service provider of the sim card)
+
+- When you have finished to work with the sim card, you can close the
+  communication channel with the 'closecard' command.
+
+  > closecard
+
+- If you wan to quit gsmcard, you can use the 'quit' commande. Note that the
+  'quit' command includes the 'closecard' command.
+
+  > quit
+
+- If you want to give the pin code (in order to access data contained in the
+  sim card), you need to use the 'givepin' command and to specify the pin
+  code. You can here specify the pin1 or the pin2 code. If you don't know
+  about pin1 and pin2, just ignore the last parameter and you will manage
+  pin1 code.
+
+  > give pin 1234 (give primary pin code)
+  > give pin 1234 2 (same as aboce but for secondary pin code)
+
+- If you want to change the pin code, you need to use the 'chgpin' command
+  and to specify the new pin code. If you don't know about pin1 and pin2, just
+  ignore the last parameter and you will manage pin1 code.
+
+  > chgpin 4321 (change primary pin code to 4321)
+  > chgpin 4321 2 (same as aboce but for secondary pin code)
+
+- You can also want the sim card to forget the pin code, you need to use the
+  'forget' command. This will erase the pin code from the sim card.
+
+  > forget (tell the sim card to forget the sim code)
+
+- You can ask the sim card not to forget the pin code, but to disable it, or
+  to enable it. You need to use the 'reqpin1' command followed by 0 (to
+  disable the pin code) or by 1 (to enable it) followed by the pin code.
+  TODO confirmation about {0|1}
+
+  > reqpin1 0 1234 (disable the pin code ?)
+  > reqpin1 1 1234 (enable the pin code ?)
+
+- If the sim card has been blocked by too many failing pin code retry, you
+  may want to unblock the pin code using the puk code. If you don't know about
+  pin1 and pin2, just ignore the last parameter and you will manage pin1 code.
+  TODO is 1234 the new pin code ?
+
+  > unblockpin 1 1234 654654 (unblock primary pin code using 654654 puk code)
+  > unblockpin 2 1234 654654 (same as above but for secondary pin code)
+
+- If you want to save the content of your phonebook from your sim card to
+  a file on your computer filesystem, you need to use the 'read' command and
+  to specify the filename of the file where phonebook will be saved. You can
+  also specify if you want to export all records (0) or only non-empty
+  records (1).
+
+  > read myfile 0 (export all records to myfile)
+  > read myfile 1 (export only non-empty records to myfile)
+
+- If you want to load the content of your phonebook from a file on your
+  computer filesystem to your sim card, you need to use the 'write' command
+  and to specify the filename of the file from which phonebook will be read.
+  You can also specify if you want to import all records (0) or only
+  non-empty records (1).
+
+  > write myfile 0 (import all records to myfile)
+  > write myfile 1 (import only non-empty records to myfile)
+
+- You can also use the 'class' command.
+  TODO precision about the 'class' command
+
+  > class
+
+
+|-----------------------------------------------------------------------------|
+|                                    TODO                                     |
++-----------------------------------------------------------------------------+
+
+- Sms management feature.
+- Ability to execute script files.
+- Replace 0/1 confirmation by y(es)/n(o) or by e(nable)/d(isable)
+
+
+|-----------------------------------------------------------------------------|
+|                                  CHANGELOG                                  |
++-----------------------------------------------------------------------------+
+
+xx-02-2010 v0.99.3
+- Add : a new great feature.
+- Update : works without cardcomm binary.
+- Bugfixe : bug with charset.
+
+27-10-2000 v0.9.1
+- Initial release.
+
+
+|-----------------------------------------------------------------------------|
+|                                     END                                     |
++-----------------------------------------------------------------------------+
