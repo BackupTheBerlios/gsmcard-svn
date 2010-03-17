@@ -24,17 +24,28 @@
 |                                   README                                    |
 +-----------------------------------------------------------------------------+
 
-- gsmcard is a sim card manager, it can save and restore phonebook, change
-  and unblock pin code.
+gsmcard is a sim card manager.
+It can save and restore the phone book, change and unblock pin codes.
 
 
 |-----------------------------------------------------------------------------|
 |                                REQUIREMENTS                                 |
 +-----------------------------------------------------------------------------+
 
-- a sim card reader
-- pcsc
-- libpcsc-perl
+- A sim card reader with driver. A normal smartcard reader might
+  work if you have (or build) a card holder.
+- The PCSC stack (see http://pcsclite.alioth.debian.org/ccid.html) 
+- The perl library ChipCard::PCSC and libpcsc-perl
+  (see http://search.cpan.org/~whom/pcsc-perl/)
+
+Most linux distributions already provide packages for these things; eg.
+for debian running
+	
+	apt-get install libpcsc-perl
+
+should be sufficient for the libraries; for a list of smartcard reader
+drivers please look at 
+  http://packages.debian.org/search?keywords=pcsc+lib&searchon=all&suite=unstable&section=all
 
 
 |-----------------------------------------------------------------------------|
@@ -42,8 +53,23 @@
 +-----------------------------------------------------------------------------+
 
 - Copy the gsmcard.pl script wherever you want.
-
 - Change mode on the script to set it executable.
+
+
+|-----------------------------------------------------------------------------|
+|                               GENERAL INFO                                  |
++-----------------------------------------------------------------------------+
+
+The sim cards normally know 4 PINs; these are named "pin" (or "pin1"), "pin2",
+"puk", and "puk2."
+
+- PIN can be required to unlock the sim card, in order to access the
+  phone book or use it in a mobile phone.
+- The puk can be used to reset the pin.
+- pin2 and puk2 are used to unlock payment options.
+
+For more information please see here:
+  http://en.wikipedia.org/wiki/Personal_Unblocking_Code
 
 
 |-----------------------------------------------------------------------------|
@@ -54,7 +80,10 @@
   Here are the available commands and descriptions. All parameters can be
   entered with the command or will be asked interactively by gsmcard.
 
-- First, you might want to get additionnal inline help with the 'help'
+  Please don't worry about the 3-digit status codes that are printed before
+  each answer; these provide an FTP-like protocol for GUI applications.
+
+- First, you might want to get additional inline help with the 'help'
   command.
 
   > help (ask for general help)
@@ -62,8 +91,8 @@
 
 - Then, if you want to interact with a sim card, you need to use the
   'opencard' command that will open a communication channel with the sim
-  card. Note that you can eventually give the pin code if the sim card needs
-  it.
+  card. Note that you might have to enter the pin code, if the sim card
+  is configured to require it.
 
   > opencard (open the communication channel with the sim card)
   > opencard 1234 (same as above but specifying a pin code)
@@ -74,83 +103,81 @@
   > status (get status of sim card and communication channel)
 
 - If you want to get some various information about the sim card, you can use
-  the 'info' command with one of the following parameter depending on what
-  informations you want to get : serial, lang, imsi or sp.
+  the 'info' command with one of the following parameters depending on what
+  informations you want to get: serial, lang, imsi or sp.
 
   > info serial (get serial number of the sim card)
   > info lang (get language informations of the sim card)
   > info imsi (get internal mobile subscriber id of the sim card)
   > info sp (get service provider of the sim card)
 
-- When you have finished to work with the sim card, you can close the
+- When you have finished working with the sim card, you can close the
   communication channel with the 'closecard' command.
 
   > closecard
 
-- If you wan to quit gsmcard, you can use the 'quit' commande. Note that the
-  'quit' command includes the 'closecard' command.
+- If you want to quit gsmcard, you can use the 'quit' command. Note that the
+  'quit' command does a 'closecard' automatically, if needed.
 
   > quit
 
 - If you want to give the pin code (in order to access data contained in the
-  sim card), you need to use the 'givepin' command and to specify the pin
-  code. You can here specify the pin1 or the pin2 code. If you don't know
-  about pin1 and pin2, just ignore the last parameter and you will manage
-  pin1 code.
+  sim card), you can use the 'givepin' command to specify the pin code.
+  You can specify whether to use pin or pin2; normally you'll want to use 
+  the pin, this is the default.
 
   > give pin 1234 (give primary pin code)
   > give pin 1234 2 (same as aboce but for secondary pin code)
 
-- If you want to change the pin code, you need to use the 'chgpin' command
-  and to specify the new pin code. If you don't know about pin1 and pin2, just
-  ignore the last parameter and you will manage pin1 code.
+- If you want to change the pin code, you can use the 'chgpin' command.
 
   > chgpin 4321 (change primary pin code to 4321)
   > chgpin 4321 2 (same as aboce but for secondary pin code)
 
-- You can also want the sim card to forget the pin code, you need to use the
-  'forget' command. This will erase the pin code from the sim card.
+- If you want the card to return to the not-logged-in state, use the
+  'forget' command.
 
-  > forget (tell the sim card to forget the sim code)
+  > forget (tell the sim card to logout the session)
 
-- You can ask the sim card not to forget the pin code, but to disable it, or
-  to enable it. You need to use the 'reqpin1' command followed by 0 (to
-  disable the pin code) or by 1 (to enable it) followed by the pin code.
-  TODO confirmation about {0|1}
+- You can configure the sim card to not require the pin, by using the
+  'reqpin1' command followed by 0 (to disable the need for a pin code) 
+  or 1 (to require it) followed by the pin code.
 
-  > reqpin1 0 1234 (disable the pin code ?)
-  > reqpin1 1 1234 (enable the pin code ?)
+  > reqpin1 0 1234 (disable the pin code)
+  > reqpin1 1 1234 (require the pin code)
 
-- If the sim card has been blocked by too many failing pin code retry, you
-  may want to unblock the pin code using the puk code. If you don't know about
-  pin1 and pin2, just ignore the last parameter and you will manage pin1 code.
-  TODO is 1234 the new pin code ?
+- If a pin has been blocked by too many wrong attempts, may want to unblock 
+  it using the puk code. Per default you will manage the pin1 code.
 
-  > unblockpin 1 1234 654654 (unblock primary pin code using 654654 puk code)
-  > unblockpin 2 1234 654654 (same as above but for secondary pin code)
+  > unblockpin 1 1234 654654 (reset primary pin code using 654654 puk code)
+  > unblockpin 2 1234 654654 (same as above but for pin2)
 
-- If you want to save the content of your phonebook from your sim card to
-  a file on your computer filesystem, you need to use the 'read' command and
-  to specify the filename of the file where phonebook will be saved. You can
-  also specify if you want to export all records (0) or only non-empty
-  records (1).
+- If you want to read the content of your phone book from your sim card and
+  store it to a file on your computer, you need to use the 'read' command.
+  You'll need to specify the filename of the file where the phone book will
+  be saved.
+  You can also specify if you want to export all records (0) or only
+  non-empty records (1).
 
   > read myfile 0 (export all records to myfile)
   > read myfile 1 (export only non-empty records to myfile)
 
-- If you want to load the content of your phonebook from a file on your
+- If you want to (over-) write the sim phone book using a file, you can
+  use the 'write' command.
   computer filesystem to your sim card, you need to use the 'write' command
   and to specify the filename of the file from which phonebook will be read.
-  You can also specify if you want to import all records (0) or only
-  non-empty records (1).
+  You can also specify if you want to write all records (0) or only used
+  ones (1).
 
-  > write myfile 0 (import all records to myfile)
-  > write myfile 1 (import only non-empty records to myfile)
+  > write myfile 0 (overwrite all records given in the file)
+  > write myfile 1 (import only non-empty records from the file)
 
 - You can also use the 'class' command.
-  TODO precision about the 'class' command
+  This command takes a single byte in hexadecimal to specify the ISO7816
+  command class for taking to the sim card.
+  This should only be necessary for some really old cards (pre 2000).
 
-  > class
+  > class A0
 
 
 |-----------------------------------------------------------------------------|
@@ -160,19 +187,7 @@
 - Sms management feature.
 - Ability to execute script files.
 - Replace 0/1 confirmation by y(es)/n(o) or by e(nable)/d(isable)
-
-
-|-----------------------------------------------------------------------------|
-|                                  CHANGELOG                                  |
-+-----------------------------------------------------------------------------+
-
-xx-02-2010 v0.99.3
-- Add : a new great feature.
-- Update : works without cardcomm binary.
-- Bugfixe : bug with charset.
-
-27-10-2000 v0.9.1
-- Initial release.
+- Better i18n support for phone book entries (for "é" and similar).
 
 
 |-----------------------------------------------------------------------------|
