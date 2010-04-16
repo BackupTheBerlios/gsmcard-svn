@@ -76,6 +76,52 @@ $Last_HexData="";
       sub { $bin =~ /^.([^\xff]*)/; $1 || "(none)"; } ],
   );
 
+%UTF8_to_SIM=(
+		'@' => '\\x00',
+		'£' => '\\x01',
+		'$' => '\\x02',
+		'¥' => '\\x03',
+		'è' => '\\x04',
+		'é' => '\\x05',
+		'ù' => '\\x06',
+		'ì' => '\\x07',
+		'ò' => '\\x08',
+		'Ç' => '\\x09',
+		'Ø' => '\\x0B',
+		'ø' => '\\x0C',
+		'Å' => '\\x0E',
+		'å' => '\\x0F',
+		'Δ' => '\\x10',
+		'_' => '\\x11',
+		'Φ' => '\\x12',
+		'Γ' => '\\x13',
+		'Λ' => '\\x14',
+		'Ω' => '\\x15',
+		'Π' => '\\x16',
+		'Ψ' => '\\x17',
+		'Σ' => '\\x18',
+		'Θ' => '\\x19',
+		'Ξ' => '\\x1A',
+		'^' => '\\x1B\\x14',
+		'{' => '\\x1B\\x28',
+		'}' => '\\x1B\\x29',
+		'\\' => '\\x1B\\x2F',
+		'[' => '\\x1B\\x3C',
+		'~' => '\\x1B\\x3D',
+		']' => '\\x1B\\x3E',
+		'|' => '\\x1B\\x40',
+		'€' => '\\x1B\\x65',
+		'Æ' => '\\x1C',
+		'æ' => '\\x1D',
+		'ß' => '\\x1E',
+		'É' => '\\x1F',
+		'ä' => '\\x7B',
+		'ö' => '\\x7C',
+		'ñ' => '\\x7D',
+		'ü' => '\\x7E',
+		'à' => '\\x7F',
+		);
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
 
@@ -301,6 +347,35 @@ sub OpenCard
 }
 
 
+sub _translate_fn
+{
+	my(@trans)=@_;
+	my($result);
+
+	$result="sub { local(\$_)=shift();\n";
+	while (@trans)
+	{
+		my ($k, $v)=splice(@trans,0,2);
+		$result .= "s/$k/$v/gs";
+	}
+	$result .= "}";
+	my $fn=eval($result);
+
+	die $@ if $@;
+	return $fn;
+}
+
+sub translate_from_sim
+{
+	my($utf8)=@_;
+	my $tr_fn if 0;
+
+	$tr_fn=_translate_fn(%UTF8_to_SIM) if (!$tr_fn);
+
+	return $tr_fn($utf8);
+}
+
+
 sub ReadPhoneBook
 {
 	my($file,$empty,$von,$bis, $hexdump)=@_;
@@ -331,7 +406,7 @@ sub ReadPhoneBook
 
 	$size=$size/$reclen;
 	print "201 phonebook has a maximum of ",
-				"$size entries � $reclen bytes.\n";
+				"$size entries á $reclen bytes.\n";
 	$bis||=$size;
 	for($i=$von || 1; $i<=$bis; $i++)
 	{
@@ -347,6 +422,8 @@ sub ReadPhoneBook
 		$number="+" . $number if $npi & 1;
 
 		$name =~ s/\xff+//g;
+		$name =~ s/^\x81.\x01//s;
+		$name = translate_from_sim($name);
 
 		next if $name eq "" && ! $empty;
 		print FILE join("\t", $i,$name,$number),"\n";
@@ -387,7 +464,7 @@ sub WritePhoneBook
 
 	$size=$size/$reclen;
 	print "201 phonebook has a maximum of ",
-				"$size entries � $reclen bytes.\n";
+				"$size entries á $reclen bytes.\n";
 
 	$erg="200 ok.\n";   
 	while (<FILE>) 
@@ -400,7 +477,7 @@ sub WritePhoneBook
 		{
 			next if ! $empty;
 
-			$cmd="ff" x $reclen;	# Sonderfall f�r leere Records
+			$cmd="ff" x $reclen;	# Sonderfall für leere Records
 		}
 		else
 		{
@@ -421,7 +498,7 @@ sub WritePhoneBook
 			$number .= ("f" x (24 - length($number)));
 
 #      $len=sprintf("%02X",(length($number)+1)/2);
-# f�r telering-sim:
+# für telering-sim:
 			$len=sprintf("%02X",(length($number)+2)/2);
 			$number =~ s/(.)(.)/$2$1/g;
 
@@ -580,7 +657,7 @@ sub UnblockPIN
 {
 	my($which,$new,$puk)=@_;
 
-	$which=1 unless $which==2;	# nur 0 oder 2 g�ltig
+	$which=1 unless $which==2;	# nur 0 oder 2 gültig
 		last unless $new||=&ReqInput("new pin$which");
 	last unless $puk||=&ReqInput("puk$which");
 
