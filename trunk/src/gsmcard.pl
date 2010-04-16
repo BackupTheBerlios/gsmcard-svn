@@ -37,31 +37,31 @@ $Last_HexData="";
 
 %cmds= (
   "help" 	=> [ \&Help, 
-                     "gives help", "" ],
+                     "Gives help", "" ],
   "class" 	=> [ \&SetClass, 
-                     "sets iso7816 class", "" ],
+                     "Sets ISO7816 class", "" ],
   "forget" 	=> [ \&Forget, 
-                     "forgets PIN in memory", "" ],
+                     "Forgets PIN in memory", "" ],
   "chgpin" 	=> [ \&ChangePIN, 
-                     "changes pin.", "{new pin {1|2}}" ],
+                     "Changes pin.", "{new pin {1|2}}" ],
   "givepin" 	=> [ \&PresentPIN, 
-                     "gives pin to card.", "{pin {1|2}}" ],
+                     "Gives pin to card.", "{pin {1|2}}" ],
   "opencard" 	=> [ \&OpenCard, 
-                     "opens card", "{pin}" ],
+                     "Opens card", "{pin}" ],
   "closecard" 	=> [ \&CloseCard, 
-                     "closes card.", "" ],
+                     "Closes card.", "" ],
   "reqpin1"	=> [ \&EnDisablePIN, 
-                     "en/disable pin1", "{0|1} {pin1}" ],
+                     "En/disable PIN1", "{0|1} {pin1}" ],
   "unblockpin"	=> [ \&UnblockPIN, 
-                     "unblocks pin.", "{1|2 {new pin {puk}}}" ],
+                     "Unblocks PIN.", "{1|2 {new pin {puk}}}" ],
   "status"	=> [ \&Status, 
-                     "print status of card & connection", "" ],
+                     "Print status of card & connection", "" ],
   "info"	=> [ \&FileInfo, 
-                     "various info.", "{serial|lang|imsi|sp}" ],
+                     "Shows various information about the SIM.", "{serial|lang|imsi|sp}" ],
   "write"	=> [ \&WritePhoneBook, 
-                     "writes phonebook.", "{filename {empty}}" ],
+                     "Writes phonebook to SIM.", "{filename {empty}}" ],
   "read"	=> [ \&ReadPhoneBook, 
-                     "reads phonebook.", "{filename {empty}}" ],
+                     "Reads phonebook from SIM.", "{filename {empty {from-index {to-index {hex-dump}}}}}" ],
   "quit"	=> [ \&Quit, "exit program" ],
 );
 
@@ -303,7 +303,7 @@ sub OpenCard
 
 sub ReadPhoneBook
 {
-	my($file,$empty,$von,$bis)=@_;
+	my($file,$empty,$von,$bis, $hexdump)=@_;
 	my($i,$reclen,$size,$ascii);
 	my($name,$len,$ssc,$ton,$npi,$number,$cci,$ext,$erg);
 	local(*FILE);
@@ -350,7 +350,7 @@ sub ReadPhoneBook
 
 		next if $name eq "" && ! $empty;
 		print FILE join("\t", $i,$name,$number),"\n";
-		print FILE "# ", $Last_HexData,"\n";
+		print FILE "# ", $Last_HexData,"\n" if $hexdump;
 	}
 
 	close FILE;
