@@ -61,7 +61,7 @@ $Last_HexData="";
   "write"	=> [ \&WritePhoneBook, 
                      "Writes phonebook to SIM.", "{filename {empty}}" ],
   "read"	=> [ \&ReadPhoneBook, 
-                     "Reads phonebook from SIM.", "{filename {empty {from-index {to-index {hex-dump}}}}}" ],
+                     "Reads phonebook from SIM.", "filename {from=index} {to=index} {hexdump} {raw} {empty|noempty}" ],
   "quit"	=> [ \&Quit, "exit program" ],
 );
 
@@ -378,12 +378,25 @@ sub translate_from_sim
 
 sub ReadPhoneBook
 {
-	my($file,$empty,$von,$bis, $hexdump)=@_;
+	my($file,@opt)=@_;
 	my($i,$reclen,$size,$ascii);
 	my($name,$len,$ssc,$ton,$npi,$number,$cci,$ext,$erg);
+	my $empty,$von,$bis, $hexdump, $raw;
 	local(*FILE);
 
 	OpenCard() unless $hCard;
+
+	for(@opt)
+	{
+		$empty=!$1,next if /^(no)empty$/;
+		$raw=1,next if /^raw$/;
+		$hexdump=1,next if /^hexdump$/;
+		$von=$1,next if /^from=(\d+)$/;
+		$bis=$1,next if /^to=(\d+)$/;
+
+		print "401 unknown option '$_'.\n";
+		return;
+	}
 
 	last unless $file||=&ReqInput("filename, '-' = stdout");
 	$empty||=&ReqInput("empty records ? (0|1)")
@@ -424,11 +437,13 @@ sub ReadPhoneBook
 
 		$name =~ s/\xff+//g;
 		$name =~ s/^\x81.\x01//s;
-		$name = translate_from_sim($name);
 
-		next if $name eq "" && ! $empty;
-		print FILE join("\t", $i,$name,$number),"\n";
+		print FILE join("\t", $i,$name,$number),"\n" if $raw;
 		print FILE "# ", $Last_HexData,"\n" if $hexdump;
+
+		$trname = translate_from_sim($name);
+		next if $trname eq "" && ! $empty;
+		print FILE join("\t", $i,$name,$number),"\n";
 	}
 
 	close FILE;
