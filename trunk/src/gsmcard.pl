@@ -383,6 +383,7 @@ sub ReadPhoneBook
 	my($name,$len,$ssc,$ton,$npi,$number,$cci,$ext,$erg);
 	local(*FILE);
 
+	OpenCard() unless $hCard;
 
 	last unless $file||=&ReqInput("filename, '-' = stdout");
 	$empty||=&ReqInput("empty records ? (0|1)")
@@ -442,6 +443,7 @@ sub WritePhoneBook
 	my($name,$len,$ssc,$ton,$npi,$number,$cci,$ext,$erg);
 	local(*FILE);
 
+	OpenCard() unless $hCard;
 
 	last unless $file||=&ReqInput("filename, '-' = stdin");
 	$empty=&ReqInput("write empty records ? (0|1)")
@@ -537,8 +539,7 @@ sub Status
 	my($erg,$i,$raw);
 	my($mem,$id,$rfu,$type,$len,@char);
 
-	return "400 card not opened!\n"
-		unless $hCard;
+	OpenCard() unless $hCard;
 
 	($erg,$i)=SelectGSMFile();
 	return $erg if $erg;
@@ -691,6 +692,7 @@ sub PresentPIN
 	my($pin,$which)=@_;
 	my($erg);
 
+	OpenCard() unless $hCard;
 	$which=1 unless $which==1 || $which==2;
 
 	last unless $pin||=&ReqInput("pin$which");
