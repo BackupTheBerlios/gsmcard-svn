@@ -347,6 +347,13 @@ sub OpenCard
 }
 
 
+sub _to_hex
+{
+	my($i)=@_;
+	return $i if $i =~ /^(\\x)?[0-9 ,a-zA-Z-]*$/;
+	return join("", map { sprintf("\\x%02x", $_); } unpack("C*", $i));
+}
+
 sub _translate_fn
 {
 	my(@trans)=@_;
@@ -356,12 +363,14 @@ sub _translate_fn
 	while (@trans)
 	{
 		my ($k, $v)=splice(@trans,0,2);
-		$result .= "s/$k/$v/gs";
+		my $s = "s/" . _to_hex($k) . "/" . _to_hex($v) . "/gs; ";
+		$s =~ s/\\/\\\\/g;
+		$result .= $s;
 	}
-	$result .= "}";
+	$result .= " return \$_; }";
 	my $fn=eval($result);
 
-	die $@ if $@;
+	die "translate-function gives $@ for $result." if $@;
 	return $fn;
 }
 
@@ -370,9 +379,9 @@ sub translate_from_sim
 	my($utf8)=@_;
 	my $tr_fn if 0;
 
-	$tr_fn=_translate_fn(%UTF8_to_SIM) if (!$tr_fn);
+	$tr_fn=_translate_fn(reverse %UTF8_to_SIM) if (!$tr_fn);
 
-	return $tr_fn($utf8);
+	return &$tr_fn($utf8);
 }
 
 
@@ -405,6 +414,8 @@ sub ReadPhoneBook
 	open(FILE, ($file eq "-" ? ">& STDOUT" : "> " . $file)) 
 		|| return "400 open file: $!";
 
+	select((select(FILE),$|=1)[0]);
+
 	($erg,$i)=SelectGSMFile("7f10","6f3a");
 	return $erg if $erg;
 
@@ -436,14 +447,13 @@ sub ReadPhoneBook
 		$number="+" . $number if $npi & 1;
 
 		$name =~ s/\xff+//g;
-		$name =~ s/^\x81.\x01//s;
-
 		print FILE join("\t", $i,$name,$number),"\n" if $raw;
+		$name =~ s/^\x81.\x01//s;
 		print FILE "# ", $Last_HexData,"\n" if $hexdump;
 
 		$trname = translate_from_sim($name);
 		next if $trname eq "" && ! $empty;
-		print FILE join("\t", $i,$name,$number),"\n";
+		print FILE join("\t", $i,$trname,$number),"\n";
 	}
 
 	close FILE;
