@@ -256,7 +256,7 @@ sub Help
 			if ($ref)
 			{
 				($desc,$para)= @{$ref}[1,2];
-				print "Command: $cmd\n  Parameter: $para\n  Description: $desc\n";
+				print "Command: $i\n  Parameter: $para\n  Description: $desc\n";
 			}
 			else
 			{
@@ -399,8 +399,8 @@ sub ReadPhoneBook
 	}
 
 	last unless $file||=&ReqInput("filename, '-' = stdout");
-	$empty||=&ReqInput("empty records ? (0|1)")
-		unless length($empty)!=0;
+	$empty=&ReqInput("empty records ? (0|1)")
+		unless defined($empty);
 
 	open(FILE, ($file eq "-" ? ">& STDOUT" : "> " . $file)) 
 		|| return "400 open file: $!";
