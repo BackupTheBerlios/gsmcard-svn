@@ -367,10 +367,20 @@ sub _translate_fn
 
 sub translate_from_sim
 {
-	my($utf8)=@_;
+	my($sim)=@_;
 	my $tr_fn if 0;
 
 	$tr_fn=_translate_fn(reverse %UTF8_to_SIM) if (!$tr_fn);
+
+	return &$tr_fn($sim);
+}
+
+sub translate_to_sim
+{
+	my($utf8)=@_;
+	my $tr_fn if 0;
+
+	$tr_fn=_translate_fn(%UTF8_to_SIM) if (!$tr_fn);
 
 	return &$tr_fn($utf8);
 }
@@ -488,9 +498,10 @@ sub WritePhoneBook
 	while (<FILE>) 
 	{
 		chomp;
-		last if /^\s*\./;	# Punkt am Anfang = Ende
+# Punkt am Anfang = Ende
+		last if /^\s*\./;	
 
-			($i,$name,$number)=split(/\t/);
+		($i,$name,$number)=split(/\t/);
 		if ($name eq "")
 		{
 			next if ! $empty;
@@ -521,6 +532,9 @@ sub WritePhoneBook
 			$number =~ s/(.)(.)/$2$1/g;
 
 #  $template="a$ascii H2 H2 h20 C C";
+			my $trname = translate_to_sim($name);
+			$name = sprintf("81 %02X 01 %s", length($name), $trname)
+				if ($trname ne $name);
 			$cmd=unpack("H*",$name) . ("ff" x ($ascii - length($name))) . 
 				$len . $sscton . $number;
 		}
