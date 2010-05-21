@@ -26,16 +26,19 @@ This script is available under the GPLv3, see L<http://www.gnu.org/licenses/gpl-
 
 use Chipcard::PCSC;
 use Chipcard::PCSC::Card;
+use strict;
 # use warnings;
 
 
-$PIN="";
-$Class="a0";
+my $PIN="";
+my $Class="a0";
+my $hCard;
+my $hContext;
 
-$Last_HexData="";
+my $Last_HexData="";
 
 
-%cmds= (
+my %cmds= (
   "help" 	=> [ \&Help, 
                      "Gives help", "" ],
   "class" 	=> [ \&SetClass, 
@@ -65,18 +68,18 @@ $Last_HexData="";
   "quit"	=> [ \&Quit, "exit program" ],
 );
 
-%FileInfoIDs=(
+my %FileInfoIDs=(
     "serial" => [ "card serial number", [ "2fe2" ],
-      sub { unpack("h*",$bin) =~ /^([0-9]+)/; $1; } ],
+      sub { unpack("h*",$_[0]) =~ /^([0-9]+)/; $1; } ],
     "lang" => [ "language preference code(s) ", [ "7f20", "6f05" ],
-      sub { join(", ",grep($_ && $_ != 255,unpack("C*",$bin))) } ],
+      sub { join(", ",grep($_ && $_ != 255,unpack("C*",$_[0]))) } ],
     "imsi" => [ "intern. mob. subscr. id", [ "7f20", "6f07" ],
-      sub { unpack("h*",$bin) =~ /^..([0-9]+)/; $1; } ],
+      sub { unpack("h*",$_[0]) =~ /^..([0-9]+)/; $1; } ],
     "sp" => [ "service provider name", [ "7f20", "6f46" ],
-      sub { $bin =~ /^.([^\xff]*)/; $1 || "(none)"; } ],
+      sub { $_[0] =~ /^.([^\xff]*)/; $1 || "(none)"; } ],
   );
 
-%UTF8_to_SIM=(
+my %UTF8_to_SIM=(
 		'@' => '\\x00',
 		'£' => '\\x01',
 		'$' => '\\x02',
@@ -125,7 +128,7 @@ $Last_HexData="";
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
 
-$Quit=0;
+my $Quit=0;
 while (!$Quit)
 {
 	print "Enter Command: ";
@@ -136,7 +139,7 @@ while (!$Quit)
 
 	next if $_ eq "";
 
-	($cmd,@par)=split(/\s+/);
+	my($cmd,@par)=split(/\s+/);
 
 	if (exists $cmds{lc $cmd})
 	{
@@ -254,7 +257,6 @@ sub Help
 			{
 				($desc,$para)= @{$ref}[1,2];
 				print "Command: $cmd\n  Parameter: $para\n  Description: $desc\n";
-#      write;
 			}
 			else
 			{
@@ -269,17 +271,6 @@ sub Help
 
 	".\n";
 }
-
-format Help=
-Command: @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-$cmd . "."
-Parameter: @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-$para
-Description: ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-$desc
-~~  ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-$desc
-.
 
 
 sub CloseCard
@@ -308,7 +299,7 @@ sub OpenCard
 
 	$hContext = new Chipcard::PCSC();
 	die ("Can't create the pcsc object: $Chipcard::PCSC::errno\n") unless (defined $hContext);
-	@ReadersList = $hContext->ListReaders ();
+	my @ReadersList = $hContext->ListReaders ();
 	die ("Can't get readers' list: $Chipcard::PCSC::errno\n") unless (defined($ReadersList[0]));
 	# print "  @ReadersList\n";
 	$hCard = new Chipcard::PCSC::Card ($hContext, $ReadersList[0]);
@@ -331,7 +322,7 @@ sub OpenCard
 		} else {
 		}
 	}
-	@StatusResult = $hCard->Status ();
+	my @StatusResult = $hCard->Status ();
 	die ("Can't get card status: $Chipcard::PCSC::errno\n") unless (defined ($StatusResult[0]));
 
 
@@ -390,7 +381,7 @@ sub ReadPhoneBook
 	my($file,@opt)=@_;
 	my($i,$reclen,$size,$ascii);
 	my($name,$len,$ssc,$ton,$npi,$number,$cci,$ext,$erg);
-	my $empty,$von,$bis, $hexdump, $raw;
+	my($empty,$von,$bis, $hexdump, $raw);
 	local(*FILE);
 
 	OpenCard() unless $hCard;
@@ -427,7 +418,7 @@ sub ReadPhoneBook
 
 	$ascii=$reclen - (1+1+12);
 
-	$template="a$ascii h1 X H1 h1 X H1 h20 C C";
+	my $template="a$ascii h1 X H1 h1 X H1 h20 C C";
 
 	$size=$size/$reclen;
 	print "201 phonebook has a maximum of ",
@@ -451,7 +442,7 @@ sub ReadPhoneBook
 		$name =~ s/^\x81.\x01//s;
 		print FILE "# ", $Last_HexData,"\n" if $hexdump;
 
-		$trname = translate_from_sim($name);
+		my $trname = translate_from_sim($name);
 		next if $trname eq "" && ! $empty;
 		print FILE join("\t", $i,$trname,$number),"\n";
 	}
@@ -465,7 +456,7 @@ sub WritePhoneBook
 {
 	my($file,$empty)=@_;
 	my($i,$reclen,$size,$ascii,$cmd);
-	my($name,$len,$ssc,$ton,$npi,$number,$cci,$ext,$erg);
+	my($name,$len,$ssc,$ton,$npi,$number,$cci,$ext,$erg, $sscton);
 	local(*FILE);
 
 	OpenCard() unless $hCard;
@@ -594,7 +585,7 @@ sub Status
 sub FileInfo
 {
 	my(@which)=@_;
-	local($i,$bin,$txt,$sub,$path,$erg,$descr,$len);
+	my($i,$bin,$txt,$sub,$path,$erg,$descr,$len);
 
 	@which=split(/\s+/,&ReqInput("info name(s)"))
 		unless @which;
@@ -621,7 +612,7 @@ sub FileInfo
 			unless $txt =~ s/9000$//;
 
 		$bin=pack("H*",$txt);
-		print "201 ",$descr," ",&$sub(),"\n";
+		print "201 ",$descr," ",&$sub($bin),"\n";
 	}
 
 	return ".\n";
@@ -645,7 +636,7 @@ sub EnDisablePIN
 		if length($enable)==0;
 	last unless $pin||=$PIN || &ReqInput("pin1");
 
-	$erg=&DoAPDU(sprintf("%s000108%16s",
+	my $erg=&DoAPDU(sprintf("%s000108%16s",
 				$enable ? "28" : "26",
 				unpack("H16",$pin . ("\xff" x 8))
 				));
@@ -664,7 +655,7 @@ sub ChangePIN
 	last unless $old= ($which==1 ? $PIN : 0) || &ReqInput("old pin$which");
 	last unless $new||=&ReqInput("new pin$which");
 
-	$erg=&DoAPDU(sprintf("24000%1d10%16s%16s",
+	my $erg=&DoAPDU(sprintf("24000%1d10%16s%16s",
 				$which,
 				unpack("H16",$old . ("\xff" x 8)),
 				unpack("H16",$new . ("\xff" x 8))
@@ -687,7 +678,7 @@ sub UnblockPIN
 		last unless $new||=&ReqInput("new pin$which");
 	last unless $puk||=&ReqInput("puk$which");
 
-	$erg=&DoAPDU(sprintf("2c000%1d10%16s%16s",
+	my $erg=&DoAPDU(sprintf("2c000%1d10%16s%16s",
 				$which == 2 ? 2 : 0,
 				unpack("H16",$puk . ("\xff" x 8)),
 				unpack("H16",$new . ("\xff" x 8))
