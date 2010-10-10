@@ -619,7 +619,16 @@ sub FileInfo
 		$txt=&DoAPDU("b0 00 00 00");
 		if ($txt =~ /^67([0-9a-f]{2})$/i)
 		{
-			$txt=&DoAPDU("b0 00 00 " . $1);
+			if ($1=="00")
+			{
+				# We use the standard length of 9 to check
+				$txt=&DoAPDU("b0 00 00 09");
+			}
+			else
+			{
+				# We use the value given back from the SIM card as length
+				$txt=&DoAPDU("b0 00 00 " . $1);
+			}
 		}
 
 		return "404 can't read " . $descr . ":" . $txt . "\n"
