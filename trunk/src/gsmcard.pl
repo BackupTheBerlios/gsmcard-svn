@@ -64,7 +64,7 @@ my %cmds= (
   "write"	=> [ \&WritePhoneBook, 
                      "Writes phonebook to SIM.", "{filename {empty}}" ],
   "read"	=> [ \&ReadPhoneBook, 
-                     "Reads phonebook from SIM.", "filename {from=index} {to=index} {hexdump} {raw} {empty|noempty}" ],
+                     "Reads phonebook from SIM.", "filename {from=index} {to=index} {hexdump} {raw} {empty|noempty} {notranslated}" ],
   "quit"	=> [ \&Quit, "exit program" ],
 );
 
@@ -355,7 +355,7 @@ sub _translate_fn
 	{
 		my ($k, $v)=splice(@trans,0,2);
 		my $s = "s/" . _to_hex($k) . "/" . _to_hex($v) . "/gs; ";
-		$s =~ s/\\/\\\\/g;
+		#$s =~ s/\\/\\\\/g;
 		$result .= $s;
 	}
 	$result .= " return \$_; }";
@@ -391,18 +391,20 @@ sub ReadPhoneBook
 	my($file,@opt)=@_;
 	my($i,$reclen,$size,$ascii);
 	my($name,$len,$ssc,$ton,$npi,$number,$cci,$ext,$erg);
-	my($empty,$von,$bis, $hexdump, $raw);
+	my($empty,$von,$bis, $hexdump, $raw, $translated);
 	local(*FILE);
 
 	OpenCard() unless $hCard;
 
+	$translated = 1;
 	for(@opt)
 	{
-		$empty=!$1,next if /^(no)empty$/;
+		$empty=!$1,next if /^(no)?empty$/;
 		$raw=1,next if /^raw$/;
-		$hexdump=1,next if /^hexdump$/;
+		$hexdump=1,next if /^hex(dump)?$/;
 		$von=$1,next if /^from=(\d+)$/;
 		$bis=$1,next if /^to=(\d+)$/;
+		$translated=!$1,next if /^(no)?(translated|tl)$/;
 
 		print "401 unknown option '$_'.\n";
 		return;
@@ -416,6 +418,7 @@ sub ReadPhoneBook
 		|| return "400 open file: $!";
 
 	select((select(FILE),$|=1)[0]);
+	binmode(FILE);
 
 	($erg,$i)=SelectGSMFile("7f10","6f3a");
 	return $erg if $erg;
@@ -448,13 +451,15 @@ sub ReadPhoneBook
 		$number="+" . $number if $npi & 1;
 
 		$name =~ s/\xff+//g;
+		next if !$empty && $name eq '';
 		print FILE join("\t", $i,$name,$number),"\n" if $raw;
 		$name =~ s/^\x81.\x01//s;
 		print FILE "# ", $Last_HexData,"\n" if $hexdump;
 
-		my $trname = translate_from_sim($name);
-		next if $trname eq "" && ! $empty;
-		print FILE join("\t", $i,$trname,$number),"\n";
+		if ($translated) {
+			my $trname = translate_from_sim($name);
+			print FILE join("\t", $i,$trname,$number),"\n";
+		}
 	}
 
 	close FILE;
