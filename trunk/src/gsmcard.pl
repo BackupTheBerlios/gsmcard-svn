@@ -400,7 +400,7 @@ sub ReadPhoneBook
 	for(@opt)
 	{
 		$empty=!$1,next if /^(no)?empty$/;
-		$raw=1,next if /^raw$/;
+		$raw=1,$translated=0,next if /^raw$/;
 		$hexdump=1,next if /^hex(dump)?$/;
 		$von=$1,next if /^from=(\d+)$/;
 		$bis=$1,next if /^to=(\d+)$/;
@@ -411,8 +411,6 @@ sub ReadPhoneBook
 	}
 
 	last unless $file||=&ReqInput("filename, '-' = stdout");
-	$empty=&ReqInput("empty records ? (0|1)")
-		unless defined($empty);
 
 	open(FILE, ($file eq "-" ? ">& STDOUT" : "> " . $file)) 
 		|| return "400 open file: $!";
@@ -435,7 +433,7 @@ sub ReadPhoneBook
 
 	$size=$size/$reclen;
 	print "201 phonebook has a maximum of ",
-				"$size entries á $reclen bytes.\n";
+				"$size entries with $reclen bytes each.\n";
 	$bis||=$size;
 	for($i=$von || 1; $i<=$bis; $i++)
 	{
