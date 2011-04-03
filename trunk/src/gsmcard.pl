@@ -62,7 +62,7 @@ my %cmds= (
   "info"	=> [ \&FileInfo, 
                      "Shows various information about the SIM.", "{serial|lang|imsi|sp}" ],
   "write"	=> [ \&WritePhoneBook, 
-                     "Writes phonebook to SIM.", "{filename {empty}}" ],
+                     "Writes phonebook to SIM.", "{filename {empty|noempty}}}" ],
   "read"	=> [ \&ReadPhoneBook, 
                      "Reads phonebook from SIM.", "filename {from=index} {to=index} {hexdump} {raw} {empty|noempty} {notranslated}" ],
   "quit"	=> [ \&Quit, "exit program" ],
@@ -467,16 +467,24 @@ sub ReadPhoneBook
 
 sub WritePhoneBook
 {
-	my($file,$empty)=@_;
+	my($file,@opt)=@_;
 	my($i,$reclen,$size,$ascii,$cmd);
 	my($name,$len,$ssc,$ton,$npi,$number,$cci,$ext,$erg, $sscton);
 	local(*FILE);
 
+	$empty = 0;
+	for(@opt)
+	{
+		$empty=!$1,next if /^(no)?empty$/;
+
+		print "401 unknown option '$_'.\n";
+		return;
+	}
+
+
 	OpenCard() unless $hCard;
 
 	last unless $file||=&ReqInput("filename, '-' = stdin");
-	$empty=&ReqInput("write empty records ? (0|1)")
-		unless length($empty)!=0;
 
 	open(FILE, ($file eq "-" ? "<& STDIN" : "< " . $file)) 
 		|| return "400 open file: $!";
