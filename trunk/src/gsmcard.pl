@@ -472,7 +472,7 @@ sub WritePhoneBook
 	my($name,$len,$ssc,$ton,$npi,$number,$cci,$ext,$erg, $sscton);
 	local(*FILE);
 
-	$empty = 0;
+	my $empty = 0;
 	for(@opt)
 	{
 		$empty=!$1,next if /^(no)?empty$/;
